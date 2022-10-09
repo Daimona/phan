@@ -199,8 +199,11 @@ final class BuiltinSuppressionPlugin extends PluginV3 implements
         return $suppression_list;
     }
 
-    // @phan-suppress-next-line PhanAccessClassConstantInternal
-    private const SUPPRESS_ISSUE_REGEX = '/@phan-(suppress-(next(?:-next)?|current|previous)-line|file-suppress)\s+' . Builder::SUPPRESS_ISSUE_LIST . '/';
+    /**
+     * @phan-suppress-next-line PhanAccessClassConstantInternal
+     * @internal
+     */
+    public const SUPPRESS_ISSUE_REGEX = '/@phan-(suppress-(next(?:-next)?|current|previous)-line|file-suppress)\s+' . Builder::SUPPRESS_ISSUE_LIST . '/';
 
     /**
      * @return Generator<array{0:string,1:int,2:int,3:string,4:string}>
@@ -271,8 +274,9 @@ final class BuiltinSuppressionPlugin extends PluginV3 implements
     /**
      * @return list<array{0:string,1:int,2:int,3:string,4:string}>
      * returns list of [$comment_text, $comment_start_line, $comment_start_offset, $comment_name, $kind_list_text];
+     * @internal
      */
-    private static function yieldSuppressionCommentsFromTokenContents(
+    public static function yieldSuppressionCommentsFromTokenContents(
         string $comment_text,
         int $comment_start_line
     ): array {
@@ -289,9 +293,9 @@ final class BuiltinSuppressionPlugin extends PluginV3 implements
         for ($i = 0; $i < $match_count; $i++) {
             $comment_start_offset = $matches[0][$i][1];  // byte offset
             $comment_name = $matches[1][$i][0];
-            $kind_list_text = $matches[3][$i][0];  // byte offset
+            [ $kind_list_text, $kind_list_offset ] = $matches[3][$i];
 
-            $result[] = [$comment_text, $comment_start_line, $comment_start_offset, $comment_name, $kind_list_text];
+            $result[] = [$comment_text, $comment_start_line, $comment_start_offset, $comment_name, $kind_list_text, $kind_list_offset];
         }
         return $result;
     }

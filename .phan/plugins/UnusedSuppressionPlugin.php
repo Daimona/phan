@@ -17,9 +17,11 @@ use Phan\PluginV3\AnalyzeClassCapability;
 use Phan\PluginV3\AnalyzeFunctionCapability;
 use Phan\PluginV3\AnalyzeMethodCapability;
 use Phan\PluginV3\AnalyzePropertyCapability;
+use Phan\PluginV3\AutomaticFixCapability;
 use Phan\PluginV3\BeforeAnalyzeFileCapability;
 use Phan\PluginV3\FinalizeProcessCapability;
 use Phan\PluginV3\SuppressionCapability;
+use UnusedSuppressionPlugin\Fixers;
 
 /**
  * Check for unused (at)suppress annotations.
@@ -33,8 +35,12 @@ class UnusedSuppressionPlugin extends PluginV3 implements
     AnalyzeFunctionCapability,
     AnalyzeMethodCapability,
     AnalyzePropertyCapability,
-    FinalizeProcessCapability
+    FinalizeProcessCapability,
+    AutomaticFixCapability
 {
+    private const UnusedSuppression = 'UnusedSuppression';
+    private const UnusedPluginSuppression = 'UnusedPluginSuppression';
+    private const UnusedPluginFileSuppression = 'UnusedPluginFileSuppression';
 
     /**
      * @var AddressableElement[] - Analysis is postponed until finalizeProcess.
@@ -78,7 +84,7 @@ class UnusedSuppressionPlugin extends PluginV3 implements
         $suppress_issue_list =
             $element->getSuppressIssueList();
 
-        if (\array_key_exists('UnusedSuppression', $suppress_issue_list)) {
+        if (\array_key_exists(self::UnusedSuppression, $suppress_issue_list)) {
             // The element's doc comment is suppressing everything emitted by this plugin.
             return;
         }
@@ -94,7 +100,7 @@ class UnusedSuppressionPlugin extends PluginV3 implements
             self::emitIssue(
                 $code_base,
                 $element->getContext(),
-                'UnusedSuppression',
+                self::UnusedSuppression,
                 "Element {FUNCTIONLIKE} suppresses issue {ISSUETYPE} but does not use it",
                 [(string)$element->getFQSEN(), $issue_type]
             );
@@ -249,13 +255,13 @@ class UnusedSuppressionPlugin extends PluginV3 implements
                     continue;
                 }
                 // TODO: finish letting plugins suppress UnusedSuppression on other plugins
-                $issue_kind = 'UnusedPluginSuppression';
+                $issue_kind = self::UnusedPluginSuppression;
                 $message = 'Plugin {STRING_LITERAL} suppresses issue {ISSUETYPE} on this line but this suppression is unused or suppressed elsewhere';
                 if ($lineno === 0) {
-                    $issue_kind = 'UnusedPluginFileSuppression';
+                    $issue_kind = self::UnusedPluginFileSuppression;
                     $message = 'Plugin {STRING_LITERAL} suppresses issue {ISSUETYPE} in this file but this suppression is unused or suppressed elsewhere';
                 }
-                if (isset($plugin_suppressions['UnusedSuppression'][$lineno_of_comment])) {
+                if (isset($plugin_suppressions[self::UnusedSuppression][$lineno_of_comment])) {
                     continue;
                 }
                 if (isset($plugin_suppressions[$issue_kind][$lineno_of_comment])) {
@@ -304,6 +310,17 @@ class UnusedSuppressionPlugin extends PluginV3 implements
         $file_name = Config::projectPath($file_path);
         $plugin_class = \get_class($plugin);
         $this->plugin_active_suppression_list[$plugin_class][$file_name][$issue_type][$line] = $line;
+    }
+
+    public function getAutomaticFixers(): array
+    {
+        require_once __DIR__ .  '/UnusedSuppressionPlugin/Fixers.php';
+        $function_like_fixer = Closure::fromCallable([Fixers::class, 'fixUnusedSuppression']);
+        return [
+            self::UnusedSuppression => $function_like_fixer,
+            self::UnusedPluginSuppression => $function_like_fixer,
+            self::UnusedPluginFileSuppression => $function_like_fixer,
+        ];
     }
 }
 
