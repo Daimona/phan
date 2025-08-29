@@ -236,4 +236,16 @@ class Fixers
         }
         return null;
     }
+
+    /**
+     * Delete a redundant property comment.
+     * @param CodeBase $code_base @unused-param
+     */
+    public static function fixRedundantPropertyComment(
+        CodeBase $code_base,
+        FileCacheEntry $contents,
+        IssueInstance $instance
+    ): ?FileEditSet {
+        // TODO implement
+    }
 }

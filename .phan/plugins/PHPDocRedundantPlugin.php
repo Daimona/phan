@@ -9,6 +9,7 @@ use Phan\Language\Element\Comment\Builder;
 use Phan\Language\Element\Func;
 use Phan\Language\Element\FunctionInterface;
 use Phan\Language\Element\Method;
+use Phan\Language\Element\Property;
 use Phan\Library\FileCacheEntry;
 use Phan\Library\StringUtil;
 use Phan\Phan;
@@ -16,6 +17,7 @@ use Phan\Plugin\Internal\IssueFixingPlugin\FileEditSet;
 use Phan\PluginV3;
 use Phan\PluginV3\AnalyzeFunctionCapability;
 use Phan\PluginV3\AnalyzeMethodCapability;
+use Phan\PluginV3\AnalyzePropertyCapability;
 use Phan\PluginV3\AutomaticFixCapability;
 use PHPDocRedundantPlugin\Fixers;
 
@@ -36,6 +38,7 @@ use PHPDocRedundantPlugin\Fixers;
 class PHPDocRedundantPlugin extends PluginV3 implements
     AnalyzeFunctionCapability,
     AnalyzeMethodCapability,
+    AnalyzePropertyCapability,
     AutomaticFixCapability
 {
     private const RedundantFunctionComment = 'PhanPluginRedundantFunctionComment';
@@ -43,6 +46,7 @@ class PHPDocRedundantPlugin extends PluginV3 implements
     private const RedundantMethodComment = 'PhanPluginRedundantMethodComment';
     private const RedundantParameterListComment = 'PhanPluginRedundantParameterListComment';
     private const RedundantReturnComment = 'PhanPluginRedundantReturnComment';
+    private const RedundantPropertyComment = 'PhanPluginRedundantPropertyComment';
 
     public function analyzeFunction(CodeBase $code_base, Func $function): void
     {
@@ -241,6 +245,52 @@ class PHPDocRedundantPlugin extends PluginV3 implements
         }
     }
 
+    public function analyzeProperty( CodeBase $code_base, Property $property ): void {
+        if (Phan::isExcludedAnalysisFile($property->getContext()->getFile())) {
+            // This has no side effects, so we can skip files that don't need to be analyzed
+            return;
+        }
+        $comment = $property->getDocComment();
+        if (!StringUtil::isNonZeroLengthString($comment)) {
+            return;
+        }
+
+        $docType = $property->getPHPDocUnionType();
+        $realType = $property->getRealUnionType();
+        if ($docType->isEmpty() || $realType->isEmpty()) {
+            return;
+        }
+
+        $lines = explode("\n", $comment);
+        $varLine = null;
+        foreach ($lines as $line) {
+            $line = trim($line, " \r\n\t*/");
+            if ($line === '') {
+                continue;
+            }
+            if ($line[0] !== '@') {
+                // Free text, comment is not redundant.
+                return;
+            }
+            if (preg_match(Builder::PARAM_COMMENT_REGEX, $line, $matches)) {
+                if ($matches[0] !== $line) {
+                    // There's a description after the (at)var annotation
+                    return;
+                }
+                $varLine = $line;
+            }
+        }
+        if ($varLine && $docType->asNormalizedTypes()->isEqualTo($realType)) {
+            self::emitIssue(
+                $code_base,
+                $property->getContext(),
+                self::RedundantPropertyComment,
+                'Redundant annotation on property {PROPERTY}. Either remove it or add a description: {COMMENT}',
+                [$property->getRepresentationForIssue(), $varLine]
+            );
+        }
+    }
+
     /**
      * @return array<string,Closure(CodeBase,FileCacheEntry,IssueInstance):(?FileEditSet)>
      */
@@ -254,6 +304,7 @@ class PHPDocRedundantPlugin extends PluginV3 implements
             self::RedundantClosureComment => $function_like_fixer,
             self::RedundantParameterListComment => Closure::fromCallable([Fixers::class, 'fixRedundantParameterListComment']),
             self::RedundantReturnComment => Closure::fromCallable([Fixers::class, 'fixRedundantReturnComment']),
+            self::RedundantPropertyComment => Closure::fromCallable([Fixers::class, 'fixRedundantPropertyComment']),
         ];
     }
 }

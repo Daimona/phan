@@ -1,0 +1,2 @@
+src_copy/017_redundant_property_comment.php:8 PhanPluginRedundantPropertyComment Redundant annotation on property \Test017RedundantPropertyComment->redundantInt. Either remove it or add a description: @var int
+src_copy/017_redundant_property_comment.php:16 PhanPluginRedundantPropertyComment Redundant annotation on property \Test017RedundantPropertyComment->redundantWithEmptyLines. Either remove it or add a description: @var bool
