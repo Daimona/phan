@@ -33,6 +33,7 @@ use Phan\Language\UnionType;
 use Phan\Output\Collector\BufferingCollector;
 use Phan\Phan;
 use Phan\Tests\TestBase;
+use PHPUnit\Framework\Attributes\ExcludeStaticPropertyFromBackup;
 
 // Grab these before we define our own classes
 $internal_class_name_list = \get_declared_classes();
@@ -44,6 +45,7 @@ $internal_function_name_list = \get_defined_functions()['internal'];
  * Unit tests of the many methods of UnionType
  * @phan-file-suppress PhanThrowTypeAbsentForCall
  */
+#[ExcludeStaticPropertyFromBackup( UnionTypeTest::class, 'code_base' )] // Back this up because it takes 306 ms.
 final class UnionTypeTest extends TestBase
 {
     /** @var CodeBase The code base within which this unit test is operating */

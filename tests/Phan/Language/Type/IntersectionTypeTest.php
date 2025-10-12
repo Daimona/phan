@@ -18,6 +18,8 @@ final class IntersectionTypeTest extends TestBase
         // Magic methods
         '__wakeup',
         '__unserialize',
+        '__sleep',
+        '__serialize',
         '__clone',
         'memoize',  // From a trait
         'asPHPDocUnionType',

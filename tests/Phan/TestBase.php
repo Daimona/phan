@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phan\Tests;
 
 use Phan\Config;
+use Phan\Language\Type\NullType;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,47 +24,11 @@ abstract class TestBase extends TestCase
         \ini_set('memory_limit', '2G');
         \chdir(\dirname(__DIR__, 2));
         Config::reset();
+        // HACK: Force instantiation of a Type instance so that Type::$canonical_object_map is not empty. This way,
+        // PHPUnit will understand that the property cannot be backed up (see
+        // SebastianBergmann\GlobalState\Snapshot::canBeSerialized; trying to serialize Type will throw) and
+        // leave it alone. Alternatively, we would have to add the ExcludeStaticPropertyFromBackup attribute to
+        // basically every test class in phan (attributes are not inherited by subclasses).
+        NullType::instance(false);
     }
-
-    /**
-     * Needed to prevent phpunit from backing up these private static variables.
-     * See https://phpunit.de/manual/current/en/fixtures.html#fixtures.global-state
-     *
-     * @suppress PhanReadOnlyProtectedProperty, UnusedSuppression read by phpunit framework
-     */
-    protected $backupStaticAttributesExcludeList = [
-        'Phan\AST\PhanAnnotationAdder' => [
-            'closures_for_kind',
-        ],
-        'Phan\AST\ASTReverter' => [
-            'closure_map',
-            'noop',
-        ],
-        'Phan\Language\Type' => [
-            'canonical_object_map',
-            'internal_fn_cache',
-        ],
-        'Phan\Language\Type\LiteralFloatType' => [
-            'nullable_float_type',
-            'non_nullable_float_type',
-        ],
-        'Phan\Language\Type\LiteralIntType' => [
-            'nullable_int_type',
-            'non_nullable_int_type',
-        ],
-        'Phan\Language\Type\LiteralStringType' => [
-            'nullable_string_type',
-            'non_nullable_string_type',
-        ],
-        'Phan\Language\UnionType' => [
-            'empty_instance',
-        ],
-        // Back this up because it takes 306 ms.
-        'Phan\Tests\Language\UnionTypeTest' => [
-            'code_base',
-        ],
-        'Phan\Tests\Plugin\Internal\MethodSearcherPluginTest' => [
-            'code_base',
-        ],
-    ];
 }

@@ -7,10 +7,12 @@ namespace Phan\Tests\Plugin\Internal;
 use Phan\Language\UnionType;
 use Phan\Plugin\Internal\MethodSearcherPlugin;
 use Phan\Tests\CodeBaseAwareTestBase;
+use PHPUnit\Framework\Attributes\ExcludeStaticPropertyFromBackup;
 
 /**
  * Unit tests of Context and scopes
  */
+#[ExcludeStaticPropertyFromBackup( MethodSearcherPluginTest::class, 'code_base' )]
 final class MethodSearcherPluginTest extends CodeBaseAwareTestBase
 {
     /**

@@ -4570,6 +4570,7 @@ class UnionType implements Serializable, Stringable
             return;
         }
         $this->type_set = UnionType::fromFullyQualifiedPHPDocString($serialized)->getTypeSet();
+        $this->real_type_set = [];
     }
 
     /**
@@ -4599,6 +4600,7 @@ class UnionType implements Serializable, Stringable
             return;
         }
         $this->type_set = UnionType::fromFullyQualifiedPHPDocString($data[0])->getTypeSet();
+        $this->real_type_set = [];
     }
 
     /**
